@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eklavya AI — Content Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #13161e;
+      --surface2: #1a1e2a;
+      --border: #252a38;
+      --green: #4ade80;
+      --green-dim: rgba(74,222,128,0.12);
+      --red: #f87171;
+      --red-dim: rgba(248,113,113,0.10);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251,191,36,0.10);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96,165,250,0.10);
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Lora', serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--surface);
+    }
+    .logo {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: var(--green-dim);
+      border: 1px solid var(--green);
+      display: grid; place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      color: var(--green);
+      font-size: 17px;
+    }
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    header span {
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    main { max-width: 860px; margin: 0 auto; padding: 48px 24px 0; }
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+    .page-title span { color: var(--green); }
+    .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 36px; font-style: italic; }
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 36px;
+    }
+    .input-row { display: grid; grid-template-columns: 130px 1fr; gap: 14px; margin-bottom: 18px; }
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    input, select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 13px;
+      color: var(--text);
+      font-family: 'Lora', serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--green); }
+    select option { background: var(--surface2); }
+    .run-btn {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--green);
+      color: #0d0f14;
+      border: none; border-radius: 10px;
+      padding: 13px 26px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 15px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .run-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .spinner {
+      width: 15px; height: 15px;
+      border: 2px solid #0d0f14;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .flow-bar {
+      display: none;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+    }
+    .flow-step {
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: all 0.3s;
+    }
+    .flow-step.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .flow-step.done { border-color: var(--green); color: var(--green); opacity: 0.5; }
+    .flow-arrow { padding: 0 8px; color: var(--border); }
+    .pipeline { display: none; flex-direction: column; gap: 22px; }
+    .pipeline.visible { display: flex; }
+    .stage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .stage-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 15px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .stage-icon.gen { background: var(--blue-dim); border: 1px solid var(--blue); }
+    .stage-icon.rev { background: var(--amber-dim); border: 1px solid var(--amber); }
+    .stage-icon.ref { background: var(--green-dim); border: 1px solid var(--green); }
+    .stage-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+    .stage-badge {
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .badge-pass { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .badge-fail { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+    .badge-gen  { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+    .badge-ref  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .stage-body { padding: 22px; }
+    .explanation-text {
+      font-size: 15px; line-height: 1.8;
+      border-left: 3px solid var(--blue);
+      padding-left: 15px;
+      margin-bottom: 22px;
+    }
+    .mcq-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .mcq-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px; margin-bottom: 10px;
+    }
+    .mcq-q { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+    .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .mcq-opt {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px; color: var(--muted);
+      padding: 4px 8px; border-radius: 5px;
+      background: var(--surface);
+    }
+    .mcq-opt.correct { color: var(--green); background: var(--green-dim); }
+    .mcq-answer { margin-top: 8px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--green); }
+    .feedback-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .feedback-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 14px; padding: 10px 13px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+    .feedback-list.fail li { border-color: var(--red); background: var(--red-dim); }
+    .feedback-list.pass li { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+    .no-feedback { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--green); padding: 10px; }
+    .error-box {
+      background: var(--red-dim); border: 1px solid var(--red);
+      border-radius: 10px; padding: 14px 18px;
+      color: var(--red); font-family: 'DM Mono', monospace;
+      font-size: 13px; margin-top: 14px; display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">E</div>
+  <h1>Eklavya AI</h1>
+  <span>Agent Pipeline v1.0</span>
+</header>
+
+<main>
+  <h2 class="page-title">Educational Content<br><span>Generator + Reviewer</span></h2>
+  <p class="page-sub">Two AI agents — Generate, Review, and Refine automatically.</p>
+
+  <div class="input-card">
+    <div class="input-row">
+      <div>
+        <label>Grade</label>
+        <select id="gradeSelect">
+          <option value="1">Grade 1</option>
+          <option value="2">Grade 2</option>
+          <option value="3">Grade 3</option>
+          <option value="4" selected>Grade 4</option>
+          <option value="5">Grade 5</option>
+          <option value="6">Grade 6</option>
+          <option value="7">Grade 7</option>
+          <option value="8">Grade 8</option>
+        </select>
+      </div>
+      <div>
+        <label>Topic</label>
+        <input type="text" id="topicInput" placeholder="e.g. types of angles, water cycle"/>
+      </div>
+    </div>
+    <button class="run-btn" id="runBtn">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">Run Agent Pipeline</span>
+    </button>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="flow-bar" id="flowBar">
+    <div class="flow-step" id="fStep1">Generator</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" id="fStep2">Reviewer</div>
+    <div class="flow-arrow" id="fArrow3">→</div>
+    <div class="flow-step" id="fStep3">Refiner</div>
+  </div>
+
+  <div class="pipeline" id="pipeline">
+    <div class="stage-card" id="genCard">
+      <div class="stage-header">
+        <div class="stage-icon gen">📝</div>
+        <div class="stage-title">Generator Agent</div>
+        <div class="stage-badge badge-gen">DRAFT OUTPUT</div>
+      </div>
+      <div class="stage-body" id="genBody"></div>
+    </div>
+
+    <div class="stage-card" id="revCard">
+      <div class="stage-header">
+        <div class="stage-icon rev">🔍</div>
+        <div class="stage-title">Reviewer Agent</div>
+        <div class="stage-badge" id="revBadge">EVALUATING</div>
+      </div>
+      <div class="stage-body" id="revBody"></div>
+    </div>
+
+    <div class="stage-card" id="refCard" style="display:none;">
+      <div class="stage-header">
+        <div class="stage-icon ref">✨</div>
+        <div>
+          <div class="stage-title">Refined Output</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">
+            Regenerated with reviewer feedback
+          </div>
+        </div>
+        <div class="stage-badge badge-ref">REFINED</div>
+      </div>
+      <div class="stage-body" id="refBody"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  function renderContent(data) {
+    var html = '<div class="explanation-text">' + data.explanation + '</div>';
+    html += '<div class="mcq-label">Multiple Choice Questions</div>';
+    data.mcqs.forEach(function(mcq, i) {
+      var ans = mcq.answer.charAt(0).toUpperCase();
+      html += '<div class="mcq-item">';
+      html += '<div class="mcq-q">Q' + (i + 1) + '. ' + mcq.question + '</div>';
+      html += '<div class="mcq-options">';
+      mcq.options.forEach(function(opt) {
+        var isCorrect = opt.charAt(0).toUpperCase() === ans;
+        html += '<div class="mcq-opt ' + (isCorrect ? 'correct' : '') + '">' + opt + '</div>';
+      });
+      html += '</div>';
+      html += '<div class="mcq-answer">Answer: ' + mcq.answer + '</div>';
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function renderReview(review) {
+    var isPass = review.status === "pass";
+    var feedback = review.feedback || [];
+    if (feedback.length === 0) {
+      return '<div class="no-feedback">Content passed all evaluation criteria.</div>';
+    }
+    var html = '<ul class="feedback-list ' + (isPass ? 'pass' : 'fail') + '">';
+    feedback.forEach(function(f) {
+      html += '<li><span>' + (isPass ? 'OK' : 'Issue') + ': </span>' + f + '</li>';
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  function runPipeline() {
+    var grade = document.getElementById("gradeSelect").value;
+    var topic = document.getElementById("topicInput").value.trim();
+    var errBox = document.getElementById("errorBox");
+
+    if (!topic) {
+      errBox.style.display = "block";
+      errBox.textContent = "Please enter a topic.";
+      return;
+    }
+
+    errBox.style.display = "none";
+    document.getElementById("runBtn").disabled = true;
+    document.getElementById("spinner").style.display = "block";
+    document.getElementById("btnText").textContent = "Running pipeline...";
+    document.getElementById("pipeline").classList.remove("visible");
+    document.getElementById("refCard").style.display = "none";
+    document.getElementById("flowBar").style.display = "flex";
+    document.getElementById("fArrow3").style.display = "";
+    document.getElementById("fStep3").style.display = "";
+
+    ["fStep1", "fStep2", "fStep3"].forEach(function(id) {
+      document.getElementById(id).className = "flow-step";
+    });
+    document.getElementById("fStep1").classList.add("active");
+
+    fetch("/run-pipeline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grade: grade, topic: topic })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.error) {
+        errBox.style.display = "block";
+        errBox.textContent = data.error;
+        return;
+      }
+
+      document.getElementById("pipeline").classList.add("visible");
+      document.getElementById("fStep1").classList.replace("active", "done");
+      document.getElementById("fStep2").classList.add("active");
+      document.getElementById("genBody").innerHTML = renderContent(data.generated);
+
+      var isPass = data.review.status === "pass";
+      document.getElementById("fStep2").classList.replace("active", "done");
+      document.getElementById("revBadge").textContent = isPass ? "PASS" : "FAIL";
+      document.getElementById("revBadge").className = "stage-badge " + (isPass ? "badge-pass" : "badge-fail");
+      document.getElementById("revBody").innerHTML = renderReview(data.review);
+
+      if (data.refined) {
+        document.getElementById("fStep3").classList.add("active");
+        document.getElementById("refCard").style.display = "block";
+        document.getElementById("refBody").innerHTML = renderContent(data.refined);
+        document.getElementById("fStep3").classList.replace("active", "done");
+      } else {
+        document.getElementById("fArrow3").style.display = "none";
+        document.getElementById("fStep3").style.display = "none";
+      }
+    })
+    .catch(function() {
+      errBox.style.display = "block";
+      errBox.textContent = "Something went wrong. Please try again.";
+    })
+    .finally(function() {
+      document.getElementById("runBtn").disabled = false;
+      document.getElementById("spinner").style.display = "none";
+      document.getElementById("btnText").textContent = "Run Agent Pipeline";
+    });
+  }
+
+  document.getElementById("runBtn").addEventListener("click", runPipeline);
+
+  document.getElementById("topicInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { runPipeline(); }
+  });
+</script>
+</body>
+</html>
